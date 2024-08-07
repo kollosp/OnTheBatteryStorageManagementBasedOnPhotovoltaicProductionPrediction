@@ -230,3 +230,24 @@ class Plotter:
             ax.plot(x, data[y], color="b", alpha=0.1)
 
         return fig, ax
+
+    @staticmethod
+    def plot_2D_histograms(histogram: np.array,kde: np.array, fig=None, ax=None):
+        count = kde.shape[1] # number of plots to paint
+        rows = 6
+        cols = count // rows + 1
+
+        if ax is None or fig is None:
+            fig, ax = plt.subplots(rows, cols)
+
+        ts = list(range(kde.shape[0]))
+        for i in range(kde.shape[1]):
+            y = i // cols
+            x = i % rows
+            axis = ax[y,x]
+
+            axis.fill_between(ts, kde[:,i], color="black", alpha=0.1)
+            twin = axis.twinx()
+            twin.plot(ts, histogram[:,i], color="b", alpha=1)
+
+        return fig, ax, cols, rows
