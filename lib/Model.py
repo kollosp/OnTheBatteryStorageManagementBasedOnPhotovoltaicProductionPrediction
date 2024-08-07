@@ -44,15 +44,11 @@ class Model:
         elevation_assignment, self._elevation_bins = Optimized.digitize(elevation, self._x_bins)
         overlay = Optimized.overlay(data, elevation_assignment, days_assignment)
         self._overlay = Overlay(overlay, self._y_bins, self._bandwidth)
-        self._overlay.plot()
-        self._overlay = self._overlay.apply_zeros_filter().apply_density_based_filter()
-
-
+        mod1 = -0.3
+        mod2 = -0.5
+        self._overlay = self._overlay.apply_zeros_filter(modifier=mod1).apply_density_based_filter(modifier=mod2)
         self._model_representation = np.apply_along_axis(lambda a: self._overlay.bins[np.argmax(a)], 0, self._overlay.kde).flatten()
-        #
-        # plt.show()
 
-        # print("model", self._model_representation.shape)
 
     def plot(self):
         fig, ax = plt.subplots(3)

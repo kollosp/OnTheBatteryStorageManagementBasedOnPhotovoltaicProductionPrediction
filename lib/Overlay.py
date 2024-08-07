@@ -53,45 +53,79 @@ class Overlay:
     def heatmap(self):
         return self._heatmap
 
-    def plot(self):
+    def plot(self, mod1 = 0, mod2= 0, title=""):
         fig, ax, cols, rows = Plotter.plot_2D_histograms(self.heatmap, self.kde)
-        ts = list(range(self._kde.shape[0]))
-        for i in range(self._kde.shape[1]):
+        if title != "":
+            fig.suptitle(title)
+        ts = list(range(self.kde.shape[0]))
+        for i in range(self.kde.shape[1]):
             y = i // cols
             x = i % rows
             axis = ax[y,x]
 
-            threshold = self.density_based_filter_threshold(i)
-            axis.plot(ts, [threshold] * len(ts), color="r")
-            threshold = self.zeros_filter_threshold(i) * self._kde.shape[1] / self._max_value_in_overlay
-            axis.axvline(x=threshold, color="r")
+            threshold1 = int(self.kde.shape[0] * self.zeros_filter_threshold(i, modifier=mod1) / self._max_value_in_overlay)
+            print(threshold1)
+            axis.axvline(x=threshold1, color="r")
+            threshold2 = self.density_based_filter_threshold(i, modifier=mod2)
+            axis.plot(ts, [threshold2] * len(ts), color="r")
 
-    def zeros_filter_threshold(self,i):
+    def zeros_filter_threshold(self,i, modifier:float):
         d = self._kde[:, i]
+        mx = self._max_value_in_overlay
         threshold = sum(d * [self._max_value_in_overlay * i / len(d) for i,_ in enumerate(d)]) / d.sum()
+        mi = d.min()
+
+        if modifier < 0:
+            modifier = -modifier
+            threshold = modifier * mi + (1 - modifier) * threshold
+        elif modifier > 0:
+            threshold = modifier * mx + (1 - modifier) * threshold
+
+        if all(threshold > self._overlay[:, i]):
+            nanmx =  np.nanmax(self._overlay[:, i])
+            threshold = nanmx
+            print(f"zeros_filter_threshold: No value left in the array if threshold={mx}! Reverting max {nanmx} for distribution {i} ")
+
         return threshold
 
-    def apply_zeros_filter(self):
+    def apply_zeros_filter(self, modifier:float = 0):
+        """
+        Function applies lowpass filtering It checks whether the values are below the threshold. Those values
+        which are below are cleared
+        :param: modifier - a value from <-1;1> which allow adjusting. 0 is neutral value
+        """
         for i in range(self._overlay.shape[1]):
-            threshold = self.zeros_filter_threshold(i)
-            print("th", self._overlay.shape[1]* threshold / self._max_value_in_overlay )
+            threshold = self.zeros_filter_threshold(i, modifier)
             self._overlay[:, i] = Overlay.highpass_filter(self._overlay[:, i], threshold)
 
         return Overlay(self._overlay, self._y_bins, self._bandwidth)
 
-    def density_based_filter_threshold(self, i):
-        return self._kde[:, i].mean()
+    def density_based_filter_threshold(self, i, modifier:float):
+        # mx = np.nanmax(self._kde[:, i])
+        mi = np.nanmin(self._kde[:, i])
+        threshold = self._kde[:, i].mean()
 
-    def apply_density_based_filter(self):
+        if modifier < 0:
+            modifier = -modifier
+            threshold = modifier * mi + (1 - modifier) * threshold
+
+        return threshold
+
+    def apply_density_based_filter(self, modifier:float):
+        """
+        Function applies density based filtering on the overlay. It checks which values have higher density / probability
+        than threshold. Those values are passing. Other are cleared
+        :param: modifier - a value from <-1;0> which allow adjusting. 0 is neutral value
+        """
         for i in range(self._overlay.shape[1]):
             d = self._kde[:, i]
-            passing_bools = d > self.density_based_filter_threshold(i)
+            passing_bools = d >= self.density_based_filter_threshold(i, modifier)
             bins_boundaries = np.array([[self._max_value_in_overlay * i / len(d), self._max_value_in_overlay * (i+1) / len(d)]  for i,_ in enumerate(d)])
             bins_boundaries = bins_boundaries[passing_bools]
             for j in range(self._overlay.shape[0]):
                 exists_in = False
                 for _,boundaries in enumerate(bins_boundaries):
-                    if boundaries[0] <= self._overlay[j, i] < boundaries[1]:
+                    if boundaries[0] <= self._overlay[j, i] <= boundaries[1]:
                         exists_in = True
 
                 if not exists_in:
