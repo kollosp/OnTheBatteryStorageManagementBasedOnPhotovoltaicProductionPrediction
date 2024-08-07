@@ -6,7 +6,7 @@ class Dataset:
         pass
 
     @staticmethod
-    def get(field=1, filename="dataset.csv"):
+    def get(field=1, filename="dataset.xlsx"):
         # File beginning:
         # Timestamp;Production;Elevation;Model;Weather;Cloudiness variability;Overall sunny index
         # 1656536400.000;0.000;0.000;0.000;0.000;0.000;0.000

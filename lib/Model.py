@@ -73,7 +73,8 @@ class Model:
         ax[1].imshow(self._overlay.heatmap, cmap='Blues', origin='lower')
         ax[2].imshow(self._overlay.kde, cmap='Blues', origin='lower')
 
-        Plotter.plot_2D_histograms(self._overlay.heatmap, self._overlay.kde)
+        # Plotter.plot_2D_histograms(self._overlay.heatmap, self._overlay.kde)
+        self._overlay.plot()
         return fig, ax
 
     def predict(self, ts: np.ndarray):

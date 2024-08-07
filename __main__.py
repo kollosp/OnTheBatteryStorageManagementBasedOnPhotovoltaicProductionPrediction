@@ -1,18 +1,26 @@
-import pandas as pd
+from datasets import utils
+from lib.Model import Model
+from matplotlib import pyplot as plt
 
-DATASET_FILEPATH = "datasets/database.csv"
-
-def load_dataset():
-    df = pd.read_csv(DATASET_FILEPATH, header=0, sep=";", index_col=0)
-    df.index = pd.to_datetime(df.index, unit='s')
-    df.index.names = ['Datetime']
-    df = df.rename(columns={"X1": "Production", "X2": "Demand", "RCE": "Price"})
-    return df
 
 
 """
     Show dataset if the script was run directly instead of being loaded as package
 """
 if __name__ == "__main__":
-    data = load_dataset()
-    print(data.head())
+    data, ts = utils.load_dataset(convert_index_to_time=True)
+    # print(data.head(), data.columns)
+
+    # Use all columns to create X
+    # X = utils.timeseries_to_dataset([data[i] for i in data.columns], window_size=1)
+
+    production = data["Production"].to_numpy()
+    print(production)
+
+    model = Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=30,
+                 y_bins=60, bandwidth=0.4)
+    model.fit(ts=ts, data=production)
+
+    fig, ax = model.plot()
+    fig.show()
+    plt.show()

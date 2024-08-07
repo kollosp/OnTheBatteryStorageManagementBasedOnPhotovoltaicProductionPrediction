@@ -68,12 +68,14 @@ class Overlay:
 
     def zeros_filter_threshold(self,i):
         d = self._kde[:, i]
-        threshold = sum(d * [self._max_value_in_overlay * i / len(d) for _, i in enumerate(d)]) / d.sum()
+        threshold = sum(d * [self._max_value_in_overlay * i / len(d) for i,_ in enumerate(d)]) / d.sum()
         return threshold
 
     def apply_zeros_filter(self):
         for i in range(self._overlay.shape[1]):
-            self._overlay[:, i] = Overlay.highpass_filter(self._overlay[:, i], self.zeros_filter_threshold(i))
+            threshold = self.zeros_filter_threshold(i)
+            print("th", self._overlay.shape[1]* threshold / self._max_value_in_overlay )
+            self._overlay[:, i] = Overlay.highpass_filter(self._overlay[:, i], threshold)
 
         return Overlay(self._overlay, self._y_bins, self._bandwidth)
 
