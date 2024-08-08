@@ -1,7 +1,7 @@
 from sklearn.neighbors import KernelDensity
 import numpy as np
 
-from lib.Plotter import Plotter
+from SEAPF.Plotter import Plotter
 
 
 class ApplyKde:
@@ -69,11 +69,15 @@ class Overlay:
             threshold2 = self.density_based_filter_threshold(i, modifier=mod2)
             axis.plot(ts, [threshold2] * len(ts), color="r")
 
-    def zeros_filter_threshold(self,i, modifier:float):
+    def zeros_filter_threshold(self,i, modifier:float, skip_if_threshold_lower_than:float = 0.1):
         d = self._kde[:, i]
         mx = self._max_value_in_overlay
         threshold = sum(d * [self._max_value_in_overlay * i / len(d) for i,_ in enumerate(d)]) / d.sum()
         mi = d.min()
+
+        # if default threshold is very low then skip this process
+        if threshold < (self._max_value_in_overlay * skip_if_threshold_lower_than):
+            return 0
 
         if modifier < 0:
             modifier = -modifier

@@ -35,7 +35,8 @@ class Plotter:
     """
     def __init__(self, x_axis:List | np.ndarray, list_of_data_or_plotter_object:List[np.ndarray | PlotterObject],
                  displayed_window_size:int = 1_000,
-                 one_time_jump: int = 300):
+                 one_time_jump: int = 300,
+                 debug:bool=False):
         self._list_of_data = list_of_data_or_plotter_object
         self._x_axis = x_axis
         self._current_position = 0
@@ -43,6 +44,7 @@ class Plotter:
         self._displayed_window_size = displayed_window_size
         self._fig, self._ax = None, None
         self._plots = []
+        self._debug = debug
         self._data_updated = False
 
     @property
@@ -83,6 +85,9 @@ class Plotter:
         for pl, d in zip(self._plots, self._list_of_data):
             y = self.get_window(d)  # get window that should be displayed (a part of timeseries)
             pl.set_data(x, y)
+
+            if self._debug:
+                print(y)
 
         #update x-axis (without it the chart won't move)
         for ax in self._ax:

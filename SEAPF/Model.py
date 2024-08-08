@@ -17,7 +17,11 @@ class Model:
                  y_bins: int = 10,
                  bandwidth: float = 0.2,
                  window_size: int = None,
-                 enable_debug_params: bool = False):
+                 enable_debug_params: bool = False,
+                 zeros_filter_modifier:float=0,
+                 density_filter_modifier:float=0):
+        self._zeros_filter_modifier = zeros_filter_modifier
+        self._density_filter_modifier = density_filter_modifier
         self._x_bins = x_bins
         self._bandwidth = bandwidth
         self._y_bins = y_bins
@@ -31,7 +35,7 @@ class Model:
         self._enable_debug_params = enable_debug_params
         self._ws = window_size  # if set then fit function performs moving avreage on the input data
 
-    def fit(self, ts: np.ndarray, data: np.ndarray):
+    def fit(self, ts: np.ndarray, data: np.ndarray, zeros_filter_modifier:float | None = None, density_filter_modifier:float | None = None):
         if self._ws is not None:
             data = Optimized.window_moving_avg(data, window_size=self._ws, roll=True)
         # calculate elevation angles for the given timestamps
@@ -44,11 +48,15 @@ class Model:
         elevation_assignment, self._elevation_bins = Optimized.digitize(elevation, self._x_bins)
         overlay = Optimized.overlay(data, elevation_assignment, days_assignment)
         self._overlay = Overlay(overlay, self._y_bins, self._bandwidth)
-        mod1 = -0.3
-        mod2 = -0.5
+
+
+        if zeros_filter_modifier is None:
+            zeros_filter_modifier = self._zeros_filter_modifier
+        if density_filter_modifier is None:
+            density_filter_modifier = self._density_filter_modifier
+
         self._overlay = self._overlay.apply_zeros_filter(modifier=mod1).apply_density_based_filter(modifier=mod2)
         self._model_representation = np.apply_along_axis(lambda a: self._overlay.bins[np.argmax(a)], 0, self._overlay.kde).flatten()
-
 
     def plot(self):
         fig, ax = plt.subplots(3)
