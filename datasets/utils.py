@@ -6,6 +6,11 @@ DATASET_FILEPATH = "datasets/database.csv"
 LATITUDE_DEGREES= 51
 LONGITUDE_DEGREES = 14
 
+tssc = {
+    "hour": 12,
+    "day": 24*12,
+}
+
 def load_dataset(convert_index_to_time : bool = False):
     df = pd.read_csv(DATASET_FILEPATH, header=0, sep=";", index_col=0)
     ts = None

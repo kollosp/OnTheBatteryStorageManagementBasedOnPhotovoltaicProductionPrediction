@@ -97,7 +97,7 @@ class Plotter:
         self._fig.canvas.draw()
         self._fig.canvas.flush_events()
 
-    def show(self) -> None:
+    def show(self) -> self:
         self._fig, self._ax = plt.subplots(1)
         self._ax = [self._ax]
         self._plots = []
@@ -109,6 +109,7 @@ class Plotter:
 
         self._fig.canvas.mpl_connect('key_press_event', self.on_click) # update data on press
         self._fig.canvas.mpl_connect('key_release_event', self.on_release) #repaint on release
+        return self
 
     def on_release(self, event):
         if self._data_updated and event.key in ["right", "left", "up", "down", "z", "x"]:
