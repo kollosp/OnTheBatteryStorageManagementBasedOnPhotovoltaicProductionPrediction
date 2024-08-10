@@ -43,7 +43,7 @@ if __name__ == "__main__":
         forecast_horizon = 288,
         batch = 288,
         window_length = 288*80,
-        # early_stop=288*3 # define early stop - before all data are used
+        early_stop=288*3 # define early stop - before all data are used
     )
 
     experiment.models[0].plot() # the last model version is saved, so simply plot it

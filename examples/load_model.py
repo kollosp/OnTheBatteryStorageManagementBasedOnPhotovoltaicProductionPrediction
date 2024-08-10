@@ -25,6 +25,7 @@ def f():
     regressor.fit(X=ts, y=production)
     pred1 = regressor.predict(ts)
     pred = model.predict(ts)
+    model.plot()
     plotter = Plotter(ts, [production, pred, pred1], debug=True)
     plotter.show()
     plt.show()

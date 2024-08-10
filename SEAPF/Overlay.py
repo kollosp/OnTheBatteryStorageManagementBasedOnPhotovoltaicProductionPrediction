@@ -90,17 +90,24 @@ class Overlay:
             threshold = nanmx
             print(f"zeros_filter_threshold: No value left in the array if threshold={mx}! Reverting max {nanmx} for distribution {i} ")
 
+
         return threshold
 
-    def apply_zeros_filter(self, modifier:float = 0):
+    def apply_zeros_filter(self, modifier:float = 0, min_weight_left=0.2):
         """
         Function applies lowpass filtering It checks whether the values are below the threshold. Those values
         which are below are cleared
         :param: modifier - a value from <-1;1> which allow adjusting. 0 is neutral value
+        :param: min_weight_left - allow highpass filter only if more than min_weight_left initial weight left in the
+                                  distribution
         """
         for i in range(self._overlay.shape[1]):
             threshold = self.zeros_filter_threshold(i, modifier)
-            self._overlay[:, i] = Overlay.highpass_filter(self._overlay[:, i], threshold)
+            s = sum(self._overlay[:, i])
+            highpass = Overlay.highpass_filter(self._overlay[:, i], threshold)
+
+            if s == 0 or (sum(highpass) / s) > min_weight_left:
+                self._overlay[:, i] = Overlay.highpass_filter(self._overlay[:, i], threshold)
 
         return Overlay(self._overlay, self._y_bins, self._bandwidth)
 
