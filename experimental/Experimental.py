@@ -43,6 +43,7 @@ class Experimental:
     def register_dataset(self, dataset: pd.DataFrame):
         self._dataset = dataset
         self._X, self._y = series_to_Xy(self._dataset)
+        print(f"Dataset Registered. Shape: X={self._X.shape}, y={self._y.shape}")
 
     def register_model(self, model):
         self._models.append(model)
@@ -71,10 +72,12 @@ class Experimental:
         forecast_start_point = forecast_horizon + window_length - 1
         predictions = [[0] * len(y) for _ in self._models]
 
+        splits = cv.get_n_splits(y)
+
         for i, (train, test) in enumerate(cv.split(y)):
             # print(train, test)
             if i % batch == 0:
-                print(f"Batch learning. Iter: {i}")
+                print(f"Batch learning. Iter: {i} ~ {int(100 * i/splits)}%")
                 for model in self._models:
                     model.fit(X=X[train], y=y[train])
 
@@ -94,7 +97,7 @@ class Experimental:
         for metric in self._metrics:
             metrics_results[f"{metric}"] = []
             for model, prediction in zip(self._models, predictions):
-                result = metric(prediction[forecast_start_point:], y[forecast_start_point:, 0])
+                result = metric(prediction[forecast_start_point:], y[forecast_start_point:])
                 metrics_results[f"{metric}"].append(result)
 
         metrics_results["Models"] = [str(m) for m in self._models]
