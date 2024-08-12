@@ -17,7 +17,9 @@ from matplotlib import pyplot as plt
     Examination model on specified metrics
 """
 if __name__ == "__main__":
-    data, ts = utils.load_dataset(convert_index_to_time=True)
+    # data, ts = utils.load_dataset(convert_index_to_time=True)
+    data, ts = utils.load_pv(convert_index_to_time=True)
+
 
     experiment = Experimental()
 
@@ -28,8 +30,9 @@ if __name__ == "__main__":
     # register models
     experiment.register_models([
         Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=30,
-              y_bins=60, bandwidth=2, zeros_filter_modifier=-0.2, density_filter_modifier=-0.5),
-
+              y_bins=30, bandwidth=0.4, zeros_filter_modifier=-0.3, density_filter_modifier=-0.5, interpolation=True),
+        Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=30,
+              y_bins=30, bandwidth=0.4, zeros_filter_modifier=-0.3, density_filter_modifier=-0.5, interpolation=False),
         DecisionTreeRegressor(random_state=0)
     ])
 
@@ -42,9 +45,9 @@ if __name__ == "__main__":
     #make experiment
     predictions = experiment.predict(
         forecast_horizon = 288,
-        batch = 288,
-        window_length = 288*80,
-        early_stop=288*3 # define early stop - before all data are used
+        batch = 288*14,
+        window_length = 288*40,
+        #early_stop=288*3 # define early stop - before all data are used
     )
 
     experiment.models[0].plot() # the last model version is saved, so simply plot it

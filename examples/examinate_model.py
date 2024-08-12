@@ -13,26 +13,28 @@ import pandas as pd
 import numpy as np
 
 def series_to_Xy(data: pd.Series):
-    return (data.index.to_numpy().astype(int)/10**9).astype(int).reshape(-1,1), data.to_numpy().reshape(-1,1)
+    return (data.index.to_numpy().astype(int)/10**9).astype(int).reshape(-1,1), data.to_numpy()
 
 
 """
     Examination model on specified metrics
 """
 if __name__ == "__main__":
-    data, ts = utils.load_dataset(convert_index_to_time=True)
-
+    # data, ts = utils.load_dataset(convert_index_to_time=True)
+    data, ts = utils.load_pv(convert_index_to_time=True)
 
     models = [
         Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=30,
               y_bins=60, bandwidth=0.4, zeros_filter_modifier=1, density_filter_modifier=-0.5),
+        Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=30,
+              y_bins=60, bandwidth=0.4, zeros_filter_modifier=1, density_filter_modifier=-0.5, interpolation=True),
         DecisionTreeRegressor(random_state=0)
     ]
 
 
     # make dataset and y from timeseries
-    dataset = data.iloc[0:288*(30+40)]["Production"]
-    # dataset = data["Production"]
+    # dataset = data.iloc[0:288*(30+40)]["Production"]
+    dataset = data["Production"]
     X,y = series_to_Xy(dataset)
     # print(X.shape, y.shape)
     # print(np.concatenate((X,y), axis=1))
