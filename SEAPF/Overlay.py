@@ -11,14 +11,15 @@ class ApplyKde:
         self._bins = bins
 
     def __call__(self, a):
+
         b = a[~np.isnan(a)].reshape(-1, 1)
+        if len(b) == 0:
+            return np.array([0])
 
         kde = KernelDensity(kernel=self._kernel, bandwidth=self._bandwidth)
         kde = kde.fit(b.reshape(-1, 1))
         log_dens = kde.score_samples(self._bins)
-
         return np.exp(log_dens)
-
 
 class Overlay:
     def __init__(self, overlay, _y_bins, _bandwidth ):
@@ -26,16 +27,21 @@ class Overlay:
         self._y_bins = _y_bins
         self._bandwidth = _bandwidth
 
+        if np.all(np.isnan(self._overlay)):
+            raise ValueError("Only nans")
+
         self._heatmap = np.apply_along_axis(lambda a: np.histogram(a[~np.isnan(a)], bins=self._y_bins)[0], 0,
                                             self._overlay)
         self._heatmap = np.apply_along_axis(lambda a: (100 * a / np.nansum(a)).astype(int), 0, self._heatmap)
-        self._max_value_in_overlay = overlay[~np.isnan(overlay)].max()
+
+        self._max_value_in_overlay = np.nanmax(overlay) #overlay[~np.isnan(overlay)].max()
         r = (0, self._max_value_in_overlay)
         bins_no = self._y_bins
         self._bins = np.array([r[0] + (r[1] - r[0]) * i / (bins_no - 1) for i in range(bins_no)]).reshape(-1, 1)  # bins len
 
         apply_kde = ApplyKde(kernel="gaussian", bandwidth=self._bandwidth, bins=self._bins)
         self._kde = np.apply_along_axis(apply_kde, 0, self._overlay)
+        # print(self._kde)
 
     @property
     def bins(self):
@@ -64,7 +70,6 @@ class Overlay:
             axis = ax[y,x]
 
             threshold1 = int(self.kde.shape[0] * self.zeros_filter_threshold(i, modifier=mod1) / self._max_value_in_overlay)
-            print(threshold1)
             axis.axvline(x=threshold1, color="r")
             threshold2 = self.density_based_filter_threshold(i, modifier=mod2)
             axis.plot(ts, [threshold2] * len(ts), color="r")
@@ -93,7 +98,7 @@ class Overlay:
 
         return threshold
 
-    def apply_zeros_filter(self, modifier:float = 0, min_weight_left=0.2):
+    def apply_zeros_filter(self, modifier:float = 0, skip_if_threshold_lower_than=0.2):
         """
         Function applies lowpass filtering It checks whether the values are below the threshold. Those values
         which are below are cleared
@@ -101,14 +106,17 @@ class Overlay:
         :param: min_weight_left - allow highpass filter only if more than min_weight_left initial weight left in the
                                   distribution
         """
+        #print("bApply zeros", self._overlay)
         for i in range(self._overlay.shape[1]):
-            threshold = self.zeros_filter_threshold(i, modifier)
-            s = sum(self._overlay[:, i])
+            threshold = self.zeros_filter_threshold(i, modifier=modifier,
+                                                    skip_if_threshold_lower_than=skip_if_threshold_lower_than)
             highpass = Overlay.highpass_filter(self._overlay[:, i], threshold)
+            #print(i, "threshold", threshold, "highpass", highpass, all(np.isnan(highpass)))
+            if not np.all(np.isnan(highpass)):
+                #print("self._overlay[:, i] = highpass")
+                self._overlay[:, i] = highpass
 
-            if s == 0 or (sum(highpass) / s) > min_weight_left:
-                self._overlay[:, i] = Overlay.highpass_filter(self._overlay[:, i], threshold)
-
+        #print("Apply zeros", self._overlay)
         return Overlay(self._overlay, self._y_bins, self._bandwidth)
 
     def density_based_filter_threshold(self, i, modifier:float):
@@ -133,14 +141,17 @@ class Overlay:
             passing_bools = d >= self.density_based_filter_threshold(i, modifier)
             bins_boundaries = np.array([[self._max_value_in_overlay * i / len(d), self._max_value_in_overlay * (i+1) / len(d)]  for i,_ in enumerate(d)])
             bins_boundaries = bins_boundaries[passing_bools]
+            r = np.zeros((self._overlay.shape[0]), dtype=self._overlay.dtype)
             for j in range(self._overlay.shape[0]):
                 exists_in = False
                 for _,boundaries in enumerate(bins_boundaries):
                     if boundaries[0] <= self._overlay[j, i] <= boundaries[1]:
                         exists_in = True
 
-                if not exists_in:
-                    self._overlay[j, i] = np.nan
+                r[j] = self._overlay[j, i] if exists_in else np.nan
+            #revert if incorrect values
+            if not all(np.isnan(r)):
+                self._overlay[:, i] = r
 
         return Overlay(self._overlay, self._y_bins, self._bandwidth)
 
@@ -151,8 +162,11 @@ class Overlay:
             The function apply high pass filter below the given threshold. It removes all values from overlay those not
             excesses the threshold
         """
-        data[data < threshold] = np.nan
-        return data
+
+        # data[data < threshold] = np.nan
+        d = data.copy()
+        d[d < threshold] = np.nan # remove from the overlay (observations) that are lower than threshold
+        return d
 
     @staticmethod
     def lowpass_filter(data: np.ndarray, threshold: float):

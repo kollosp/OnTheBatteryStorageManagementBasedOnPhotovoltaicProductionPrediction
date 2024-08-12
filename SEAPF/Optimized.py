@@ -40,27 +40,42 @@ class Optimized:
 
     @staticmethod
     def model_assign(model_representation: np.ndarray, model_bins: np.ndarray, elevation: np.ndarray,
-                     ret_bins: bool = True) -> np.ndarray:
+                     ret_bins: bool = True, interpolation=False) -> np.ndarray:
         # assign elevation bins
-        pred = np.digitize(elevation, model_bins)
-
+        pred_bins = np.digitize(elevation, model_bins)
+        pred = pred_bins.copy()
+        pred_next = pred_bins.copy()
         diff = np.append(np.diff(elevation), [0])
+
         # assign afternoon elevation bins
         pred[diff < 0] = (len(model_bins) - 1) * 2 - pred[diff < 0]
         pred[elevation <= 0] = 0
 
-        # print(model_representation.shape)
-        # print(np.unique(pred))
-
-        #mr = [for i,m in enumerate(model_representation)]
         # assign model's data to elevation bins
         ret = np.array([model_representation[p] for p in pred])
-        # l = np.hstack([pred_d.reshape(-1,1), pred.reshape(-1,1)]).tolist()
-        # for ll in l:
-        #     print(ll)
 
-        # remove where elevation is negative or 0
-        # pred[elevation <= 0] = 0
+        if interpolation:
+            # if interpolation enabled then compute upper range
+            pred_next[diff < 0] = (len(model_bins) - 1) * 2 - pred_next[diff < 0]
+            pred_next = pred + 1  # store for future use
+            pred_next[pred_next >= len(model_representation)] = len(model_representation)-1
+
+            pred_next[elevation <= 0] = 0
+            ret_next = np.array([model_representation[p] for p in pred_next])
+            # ret = ret_next
+
+            # dirty hack to overcome issue. pred_bins after np.digitize contains values that are equals to len(model_bins)
+            # which causes index error.
+            pred_bins[pred_bins >= len(model_bins)] = len(model_bins) -1
+            upper_bounds = model_bins[pred_bins]
+            lower_bounds = model_bins[pred_bins-1]
+            ranges = upper_bounds - lower_bounds # for elevation > 0 ranges contains correct values
+            e = (elevation - lower_bounds) / ranges # for elevation > 0 e contains values from range <0,1)
+            e2 = (upper_bounds - elevation) / ranges
+            e[diff < 0] = e2[diff < 0]
+            ret = (ret + e * (ret_next - ret)) # linear interpolation
+
+        # l = np.hstack([pred_d.reshape(-1,1), pred.reshape(-1,1)]).tolist()
 
         if ret_bins:
             return ret, pred
@@ -122,7 +137,7 @@ class Optimized:
 
     @staticmethod
     def from_timestamps(ts: List[float]) -> List[dt]:
-        return [dt.fromtimestamp(t) for t in ts]
+        return [dt.fromtimestamp(int(t)) for t in ts]
 
     @staticmethod
     def window_moving_avg(data: np.ndarray, window_size: int, roll: bool = True) -> np.ndarray:

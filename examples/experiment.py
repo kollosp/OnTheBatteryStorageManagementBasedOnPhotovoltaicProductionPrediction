@@ -28,7 +28,8 @@ if __name__ == "__main__":
     # register models
     experiment.register_models([
         Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=30,
-              y_bins=60, bandwidth=0.4, zeros_filter_modifier=-0.2, density_filter_modifier=-0.5),
+              y_bins=60, bandwidth=2, zeros_filter_modifier=-0.2, density_filter_modifier=-0.5),
+
         DecisionTreeRegressor(random_state=0)
     ])
 
