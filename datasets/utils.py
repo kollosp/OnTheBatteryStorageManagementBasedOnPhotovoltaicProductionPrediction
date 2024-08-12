@@ -3,6 +3,7 @@ import numpy as np
 from typing import List
 
 DATASET_FILEPATH = "datasets/database.csv"
+PV_FILEPATH = "datasets/pv.csv"
 LATITUDE_DEGREES= 51
 LONGITUDE_DEGREES = 14
 
@@ -19,6 +20,20 @@ def load_dataset(convert_index_to_time : bool = False):
         df.index = pd.to_datetime(df.index, unit='s')
     df.index.names = ['Datetime']
     df = df.rename(columns={"X1": "Production", "X2": "Demand", "RCE": "Price"})
+    if ts is None:
+        return df
+    else:
+        return df, ts
+
+def load_pv(convert_index_to_time : bool = False):
+    df = pd.read_csv(PV_FILEPATH,header=None, sep=",", index_col=0)
+    ts = None
+    if convert_index_to_time:
+        ts = df.index.to_numpy()
+        df.index = pd.to_datetime(df.index, unit='s')
+
+    df.index.names = ['Datetime']
+    df = df.rename(columns={1: "Production"})
     if ts is None:
         return df
     else:
