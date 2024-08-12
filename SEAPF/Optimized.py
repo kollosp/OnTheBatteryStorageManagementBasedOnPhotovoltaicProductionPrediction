@@ -75,8 +75,6 @@ class Optimized:
             e[diff < 0] = e2[diff < 0]
             ret = (ret + e * (ret_next - ret)) # linear interpolation
 
-        # l = np.hstack([pred_d.reshape(-1,1), pred.reshape(-1,1)]).tolist()
-
         if ret_bins:
             return ret, pred
         else:

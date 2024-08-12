@@ -143,4 +143,4 @@ class Model(RegressorMixin, BaseEstimator):
         # return "Model representation: " + str(self.model_representation_) + \
         #     " len(" + str(len(self.model_representation_)) + ")" + \
         #     "\nBins: " + str(self.elevation_bins_) + " len(" + str(len(self.elevation_bins_)) + ")"
-        return "SEAPF"
+        return "SEAPF (" + str(self.get_params()) + ")"

@@ -93,7 +93,7 @@ class Overlay:
         if all(threshold > self._overlay[:, i]):
             nanmx =  np.nanmax(self._overlay[:, i])
             threshold = nanmx
-            print(f"zeros_filter_threshold: No value left in the array if threshold={mx}! Reverting max {nanmx} for distribution {i} ")
+            #print(f"zeros_filter_threshold: No value left in the array if threshold={mx}! Reverting max {nanmx} for distribution {i} ")
 
 
         return threshold
