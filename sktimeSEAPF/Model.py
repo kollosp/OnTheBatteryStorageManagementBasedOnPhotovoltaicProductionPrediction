@@ -4,13 +4,14 @@ import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.utils.validation import check_X_y, check_is_fitted, check_array
 from sklearn.metrics import r2_score
-from Solar import Solar
+from utils import Solar
+from utils.Plotter import Plotter
 from matplotlib import pyplot as plt
 from datetime import datetime as dt
 from typing import List
 # package imports
 from .Optimized import Optimized
-from .Plotter import Plotter
+
 from .Overlay import Overlay
 
 class Model(RegressorMixin, BaseEstimator):
@@ -24,10 +25,12 @@ class Model(RegressorMixin, BaseEstimator):
                  enable_debug_params: bool = False,
                  zeros_filter_modifier:float=0,
                  density_filter_modifier:float=0,
-                 interpolation=False):
+                 interpolation=False,
+                 return_sequences = False):
         self.zeros_filter_modifier = zeros_filter_modifier
         self.density_filter_modifier = density_filter_modifier
         self.x_bins = x_bins
+        self.return_sequences = return_sequences
         self.bandwidth = bandwidth
         self.y_bins = y_bins
         self.latitude_degrees = latitude_degrees
@@ -41,6 +44,22 @@ class Model(RegressorMixin, BaseEstimator):
         self.enable_debug_params = enable_debug_params
         self.window_size = window_size  # if set then fit function performs moving avreage on the input data
 
+    def _check_trajectory_fitting(self, y):
+
+        if len(y.shape) == 2:
+            if y.shape[1] >= 1:
+                self.trajectory_ = True
+                return y
+            else:
+                self.trajectory_ = False
+                return y.reshape(1, -1)
+        self.trajectory_ = False
+        return y
+
+    @property
+    def trajectory(self):
+        return self.trajectory_
+
     def fit(self, X: np.ndarray, y: np.ndarray, zeros_filter_modifier:float | None = None, density_filter_modifier:float | None = None):
         """
         Fit function that is similar to sklearn scheme X contains features while y contains corresponding correct values
@@ -52,13 +71,25 @@ class Model(RegressorMixin, BaseEstimator):
         """
 
         # Check that X and y have correct shape
-        X, y = check_X_y(X, y)
+        X, y = check_X_y(X, y, multi_output=True)
+        # passed if y is 2D and y.shape[1] > 1 - ensure if trajectory fitting
+        y = self._check_trajectory_fitting(y)
+
         self.n_features_in_ = X.shape[1]
 
         # model is prepared to work with only one param in X
-        ts = X[:, 0] #.reshape(1,-1).squeeze() # reshape to (n, 1) and remove last axis
-        data = y #y[:, 0] #.reshape(1,-1).squeeze()  # reshape to (n, 1) and remove last axis
+        self.x_time_delta_ = (X[-1, 0] - X[0, 0]) / X.shape[0]
+        if self.trajectory:
+            self.step_count_ = y.shape[1]
+            data = y[:, -1] #take only first element. Model require continous time series in X
+        else:
+            self.step_count_ = 0
 
+            data = y
+        ts = X[:, 0]  # .reshape(1,-1).squeeze() # reshape to (n, 1) and remove last axis
+        ts = ts + self.step_count_ * self.x_time_delta_ # if more data is in Y then those data corresponds
+                                                        # with future. So if the model uses only one (last) element
+                                                        # in y[:, ] then ts has to be adjusted
         if self.window_size is not None:
             data = Optimized.window_moving_avg(data, window_size=self.window_size, roll=True)
         # calculate elevation angles for the given timestamps
@@ -108,27 +139,41 @@ class Model(RegressorMixin, BaseEstimator):
         self.overlay_.plot()
         return fig, ax
 
-    def predict(self, X: np.ndarray, y=None):
+    def predict(self, X: np.ndarray, y=None, return_sequence=False):
         # Check if fit has been called
         check_is_fitted(self)
         # Input validation
         X = check_array(X)
 
-        ts = X[:, 0] #.reshape(1, -1).squeeze()  # reshape to (n, 1) and remove last axis
-        if self.model_representation_ is None:
-            raise RuntimeError("Model.predict: Use fit method first!")
+        ts = X[:, 0]  # .reshape(1, -1).squeeze()  # reshape to (n, 1) and remove last axis
+        if return_sequence is None:
+            return_sequence = self.return_sequence
 
-        elevation = Solar.elevation(Optimized.from_timestamps(ts), self.latitude_degrees,
-                                        self.longitude_degrees) * 180 / np.pi
+        # if sequence expected then return 2D array that contains prediction for each step.
+        if return_sequence:
+            ret = np.zeros((X.shape[0], self.step_count_))
 
+            #iterative approach - make trajectory forecasting
+            for step in range(self.step_count_):
+                elevation = Solar.elevation(Optimized.from_timestamps(ts + (self.x_time_delta_ * step)), self.latitude_degrees,
+                                            self.longitude_degrees) * 180 / np.pi
+                ret[:, step] = self._predict_step(elevation)
+
+            return ret
+        # if value expected then return 1D array containing prediction for the last step.
+        else:
+            ts = ts + self.x_time_delta_ * self.step_count_
+            elevation = Solar.elevation(Optimized.from_timestamps(ts), self.latitude_degrees,
+                                            self.longitude_degrees) * 180 / np.pi
+
+            return self._predict_step(elevation)
+
+    def _predict_step(self, elevation):
         return Optimized.model_assign(self.model_representation_,
                                       self.elevation_bins_,
                                       elevation,
                                       self.enable_debug_params,
                                       interpolation=self.interpolation)
-
-    def set_step_ahead_forecasting(self):
-        pass
 
     def score(self, X, y):
         # poor values - function crated only for api consistence

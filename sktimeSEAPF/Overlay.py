@@ -1,7 +1,7 @@
 from sklearn.neighbors import KernelDensity
 import numpy as np
 
-from SEAPF.Plotter import Plotter
+from utils.Plotter import Plotter
 
 
 class ApplyKde:

@@ -1,7 +1,7 @@
 if __name__ == "__main__": import __config__
 
 from datasets import utils
-from SEAPF.Model import Model
+from sktimeSEAPF.Model import Model
 
 from sklearn.tree import DecisionTreeRegressor
 
@@ -17,8 +17,8 @@ from matplotlib import pyplot as plt
     Examination model on specified metrics
 """
 if __name__ == "__main__":
-    # data, ts = utils.load_dataset(convert_index_to_time=True)
-    data, ts = utils.load_pv(convert_index_to_time=True)
+    data, ts = utils.load_dataset(convert_index_to_time=True)
+    #data, ts = utils.load_pv(convert_index_to_time=True)
 
 
     experiment = Experimental()

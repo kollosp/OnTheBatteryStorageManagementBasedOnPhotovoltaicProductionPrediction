@@ -1,9 +1,9 @@
 if __name__ == "__main__": import __config__
 
 from datasets import utils
-from SEAPF.Model import Model
+from sktimeSEAPF.Model import Model
 from matplotlib import pyplot as plt
-from SEAPF.Plotter import Plotter
+from utils.Plotter import Plotter
 from sklearn.tree import DecisionTreeRegressor
 from sktime.forecasting.model_selection import SlidingWindowSplitter
 from sklearn.metrics import r2_score, mean_absolute_error
@@ -20,8 +20,8 @@ def series_to_Xy(data: pd.Series):
     Examination model on specified metrics
 """
 if __name__ == "__main__":
-    # data, ts = utils.load_dataset(convert_index_to_time=True)
-    data, ts = utils.load_pv(convert_index_to_time=True)
+    data, ts = utils.load_dataset(convert_index_to_time=True)
+    # data, ts = utils.load_pv(convert_index_to_time=True)
 
     models = [
         Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=30,
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     for metric in metrics:
         for prediction in predictions:
-            result = metric(prediction[forecast_start_point:], y[forecast_start_point:, 0])
+            result = metric(prediction[forecast_start_point:], y[forecast_start_point:])
             metric_results.append(result)
 
     print(metric_results)
