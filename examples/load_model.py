@@ -19,12 +19,15 @@ def f():
 
     y_train, y_test = data["Production"][:train_test_split], data["Production"][train_test_split:train_test_split+test_len]
 
-    model = Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=30,
-                 y_bins=60, bandwidth=0.4, zeros_filter_modifier = -0.4, density_filter_modifier = -0.5)
+    model = Model(latitude_degrees=utils.LATITUDE_DEGREES, longitude_degrees=utils.LONGITUDE_DEGREES, x_bins=90,
+                 y_bins=90, bandwidth=0.4, zeros_filter_modifier = -0.4, density_filter_modifier = -0.5)
     model.fit(y=y_train)
     fh = [i-train_test_split for i in range(train_test_split, train_test_split+test_len)]
 
     pred = model.predict(fh=fh)
+    model.plot()
+
+
     print(y_train.index)
     # print_data = pd.DataFrame({'s1': data["Production"], 's2': pred})
     # print_data.plot()

@@ -49,6 +49,9 @@ class Model(BaseForecaster):
         self.enable_debug_params = enable_debug_params
         self.window_size = window_size  # if set then fit function performs moving avreage on the input data
 
+    @property
+    def overlay(self):
+        return self.overlay_
 
     def _fit(self, y, X=None, fh=None):
         """
@@ -107,7 +110,7 @@ class Model(BaseForecaster):
         ax[0].plot(x, mx, color="orange")
         ax[0].plot(x, mi, color="orange")
 
-        ax[1].imshow(self.overlay_.heatmap, cmap='Blues', origin='lower')
+        ax[1].imshow(self.overlay_.heatmap, cmap='Reds', origin='lower')
         ax[2].imshow(self.overlay_.kde, cmap='Blues', origin='lower')
 
         # Plotter.plot_2D_histograms(self.overlay_.heatmap, self.overlay_.kde)
@@ -116,8 +119,6 @@ class Model(BaseForecaster):
 
     def _predict(self, fh, X):
         ts = np.array([i*self.x_time_delta_ + self.cutoff for i in fh]).flatten()
-
-
 
         # print(timestamps)
         # if sequence expected then return 2D array that contains prediction for each step.
@@ -130,7 +131,7 @@ class Model(BaseForecaster):
         pred = pd.Series(index=pd.DatetimeIndex(ts), data=self._predict_step(elevation), dtype=float)
         pred.name = "Prediction"
         pred.index.name = "Datetime"
-        print("ts", pred.index)
+        # print("ts", pred.index)
 
         return pred
 
@@ -141,13 +142,13 @@ class Model(BaseForecaster):
                                       self.enable_debug_params,
                                       interpolation=self.interpolation)
 
-    def score(self, X, y):
-        # poor values - function crated only for api consistence
-        #
-        # X, y = check_X_y(X, y)
-        # pred = self.predict(X,y)
-        # return r2_score(pred, y)
-        return 0.6
+    # def score(self, X, y):
+    #     # poor values - function crated only for api consistence
+    #     #
+    #     # X, y = check_X_y(X, y)
+    #     pred = self.predict(X,y)
+    #     return r2_score(pred, y)
+    #     # return 0.6
 
 
     def __str__(self):
